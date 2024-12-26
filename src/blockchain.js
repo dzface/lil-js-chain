@@ -34,11 +34,11 @@ Blockchain.prototype.getLastBlock = function(){
   return this.chain[this.chain.length -1];
 }
 // 거래가 발생할때 실행되는 함수 amount: 양, sender 보낸사람 주소, 받는사람 주소
-Blockchain.prototype.createNewTransaction = function(amount, sender, recipient){
+Blockchain.prototype.createNewTransaction = function(amount, sender, receiver){
   const newTransaction = {
     amount: amount,
     sender: sender,
-    recipient: recipient,
+    receiver: receiver,
   };
   this.pendingTransaction.push(newTransaction);
   return this.getLastBlock()["index"] + 1;

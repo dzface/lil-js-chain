@@ -1,4 +1,4 @@
-const sha256 = require("sha256");
+const sha256 = require("./crypto");
 function Blockchain(){
   this.chain = [];
   this.pendingTransaction = [];
@@ -54,7 +54,7 @@ Blockchain.prototype.createHash = function(nonce, previousBlockHash, currentBloc
 Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockData){
   let nonce = 0;
   let hash = this.createHash(nonce, previousBlockHash, currentBlockData);
-  while(hash.substring(0,10) !=="d89c0e094e"){
+  while(hash.substring(0,4) !=="0000"){
     nonce++;
     hash = this.createHash(nonce, previousBlockHash, currentBlockData);
   };

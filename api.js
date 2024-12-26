@@ -3,11 +3,12 @@ const express = require("express");
 const http = require("http");
 const path = require("path");
 const Blockchain = require("./src/blockchain");
-
 const PORT = process.env.PORT || 3000;
 const app = express();
 const server = http.createServer(app);
 const bitcoin = new Blockchain();
+const uuid = require("./src/crypto");
+const nodeAddress = uuid//.uuid.split("-").join(""); // uuid 생성시 특수문자 제거
 
 
 app.use(express.static(path.join(__dirname,"/public")));
@@ -21,7 +22,6 @@ app.get("/", (req, res)=>{
   res.send("check server starting");
 });
 app.get("/blockchain", (req, res)=>{
-  
   res.send(bitcoin);
 });
 app.post("/transaction", (req, res)=>{
@@ -29,8 +29,22 @@ app.post("/transaction", (req, res)=>{
   const data = req.body;
   res.send(`새로운 거래 체결 :${blockIndex}`);
 });
-app.get("/main", (req, res)=>{
-  res.send("this is main page");
+app.get("/mine", (req, res)=>{
+  const lastBlock =bitcoin.getLastBlock();
+  const previousBlockHash = lastBlock['hash'];
+  const currentBlockData = {
+    transactions: bitcoin.pendingTransaction,
+    index: lastBlock['index'] + 1
+  };
+  const nonce = bitcoin.proofOfWork(previousBlockHash, currentBlockData);
+  const blockHash = bitcoin.createHash(nonce,previousBlockHash,currentBlockData);
+  bitcoin.createNewTransaction(6.25, "00", nodeAddress);
+
+  const newBlock = bitcoin.createNewBlock(nonce,previousBlockHash,blockHash);
+  res.json({
+    message: "새로운 블록 생성",
+    block: newBlock
+  });
 });
 
 

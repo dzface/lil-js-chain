@@ -2,6 +2,7 @@ const sha256 = require("sha256");
 function Blockchain(){
   this.chain = [];
   this.pendingTransaction = [];
+  this.createNewBlock(100, "0","0");
 }
 // 위 함수는 클래스로도 만들수 있으나 자바스크립트는
 // 내부적으로 클래스가 없고 클래스안에 constructor 메서드가 실행되므로

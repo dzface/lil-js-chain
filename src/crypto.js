@@ -12,6 +12,12 @@ function sha256(data) {
 function uuid(){
   const UUID = crypto.randomUUID();
   return UUID;
-}
-module.exports = sha256;
-module.exports.uuid = {uuid};
+};
+
+// 거래시 발생하는 transaction에 대한 고유 아이디 생성
+function createTransactionId() {
+  return crypto.randomBytes(16).toString("hex");
+};
+
+
+module.exports = {sha256, uuid, createTransactionId}; 

@@ -98,6 +98,26 @@ app.post("/register-nodes-bulk", (req, res)=>{
 });
 
 
+app.post("/transaction/broadcast", (req,res)=>{
+  const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.receiver);
+  bitcoin.addTransactionToPendingTransactions(newTransaction);
+const requestPromise = [];
+
+  bitcoin.networkNodes.forEach(networkNodeUrl=>{
+    const requestOptions = {
+      uri: networkNodeUrl + "/transaction",
+      method: "POST",
+      body : newTransaction,
+      json : true
+    };
+    requestPromise.push(requestPromise(requestOptions));
+  });
+  Promise.all(requestPromise)
+  .then(data=>{
+    res.json({note: "트랜젝션 정보 분산 완료"});
+  });
+});
+
 
 
 server.listen(PORT, ()=>{

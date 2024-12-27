@@ -1,4 +1,4 @@
-const sha256 = require("./crypto");
+const {sha256, createTransactionId} = require("./crypto");
 const currentNodeUrl = process.argv[3];
 function Blockchain(){
   this.currentNodeUrl = currentNodeUrl;
@@ -6,7 +6,7 @@ function Blockchain(){
   this.chain = [];
   this.pendingTransaction = [];
   this.createNewBlock(0, "0","0");
-}
+};
 // 위 함수는 클래스로도 만들수 있으나 자바스크립트는
 // 내부적으로 클래스가 없고 클래스안에 constructor 메서드가 실행되므로
 // 그냥 함수로 만들어서 사용함
@@ -30,28 +30,36 @@ Blockchain.prototype.createNewBlock = function(nonce, previousBlockHash, current
   this.pendingTransaction = [];
   this.chain.push(newBlock);
   return newBlock;
-}
+};
 
 // chain 배열에서 마지막 블록을 호출하는 함수
 Blockchain.prototype.getLastBlock = function(){
   return this.chain[this.chain.length -1];
-}
+};
 // 거래가 발생할때 실행되는 함수 amount: 양, sender 보낸사람 주소, 받는사람 주소
 Blockchain.prototype.createNewTransaction = function(amount, sender, receiver){
   const newTransaction = {
     amount: amount,
     sender: sender,
     receiver: receiver,
+    transactionId : createTransactionId()
   };
   this.pendingTransaction.push(newTransaction);
   return this.getLastBlock()["index"] + 1;
+};
+
+Blockchain.prototype.addTransactionToPendingTransactions = function(transactionObj){
+  this.pendingTransaction.push(transactionObj);
+  return this.getLastBlock()["index"]+1;
 }
+
+
 // 해시문자 생성
 Blockchain.prototype.createHash = function(nonce, previousBlockHash, currentBlockData){
   const dataAsString = previousBlockHash + nonce.toString() + JSON.stringify(currentBlockData);
   const hash = sha256(dataAsString);
   return hash;
-}
+};
 // 작업증명(해시문자 검증) hash가 일치 할때까지 nonce(난수)를 1씩 증가시켜 테스트하고 일치할경우 nonce를 리턴
 // 즉 몇번만에 해시가 일치했는지 반환해줌
 Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockData){
@@ -62,5 +70,5 @@ Blockchain.prototype.proofOfWork = function(previousBlockHash, currentBlockData)
     hash = this.createHash(nonce, previousBlockHash, currentBlockData);
   };
   return nonce;
-}
+};
 module.exports = Blockchain;

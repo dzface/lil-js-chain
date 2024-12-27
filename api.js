@@ -30,17 +30,18 @@ app.post("/transaction", (req, res)=>{
   res.send(`새로운 거래 체결 :${blockIndex}`);
 });
 app.get("/mine", (req, res)=>{
-  const lastBlock =bitcoin.getLastBlock();
-  const previousBlockHash = lastBlock['hash'];
+  const lastBlock =bitcoin.getLastBlock(); 
+  console.log("이전 블록:", lastBlock);
+  const previousBlockHash = lastBlock.currentHash; // lastBlock.currentHash 또는 lastBlock["currentHash"];
   const currentBlockData = {
     transactions: bitcoin.pendingTransaction,
     index: lastBlock['index'] + 1
   };
   const nonce = bitcoin.proofOfWork(previousBlockHash, currentBlockData);
-  const blockHash = bitcoin.createHash(nonce,previousBlockHash,currentBlockData);
+  const blockHash = bitcoin.createHash(nonce, previousBlockHash, currentBlockData);
   bitcoin.createNewTransaction(6.25, "00", nodeAddress);
 
-  const newBlock = bitcoin.createNewBlock(nonce,previousBlockHash,blockHash);
+  const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
   res.json({
     message: "새로운 블록 생성",
     block: newBlock

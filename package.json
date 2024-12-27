@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon api.js",
-    "start": "nodemon --watch src -e js api.js"
+    "node_1": "nodemon --watch src -e js networkNode.js 3001",
+    "node_2": "nodemon --watch src -e js networkNode.js 3002",
+    "node_3": "nodemon --watch src -e js networkNode.js 3003",
+    "node_4": "nodemon --watch src -e js networkNode.js 3004",
+    "node_5": "nodemon --watch src -e js networkNode.js 3005"
   },
   "keywords": [],
   "author": "",

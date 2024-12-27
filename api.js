@@ -27,7 +27,7 @@ app.get("/blockchain", (req, res)=>{
 app.post("/transaction", (req, res)=>{
   const blockIndex = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.receiver);
   const data = req.body;
-  res.send(`새로운 거래 체결 :${blockIndex}`);
+  res.send(`새로운 거래 체결 블록 :${blockIndex}`);
 });
 app.get("/mine", (req, res)=>{
   const lastBlock =bitcoin.getLastBlock(); 

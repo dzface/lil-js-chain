@@ -9,12 +9,13 @@ const server = http.createServer(app);
 const bitcoin = new Blockchain();
 const uuid = require("./src/crypto");
 const nodeAddress = uuid//.uuid.split("-").join(""); // uuid 생성시 특수문자 제거
+const requestPromise = require("request-promise");
 
 
 app.use(express.static(path.join(__dirname,"/public")));
 app.use(express.json()); // json 파씽 필수 코드
 
-
+// endpoint
 // app.get("/", (request, response)=>{
 //   response.sendFile(path.join(__dirname,"./public/index.html"));
 // })
@@ -46,6 +47,54 @@ app.get("/mine", (req, res)=>{
     message: "새로운 블록 생성",
     block: newBlock
   });
+});
+
+// 접속한 노드가 포트주소 등 정보를 전달받음
+app.post("/register-and-broadcast-node", (req, res)=>{
+  const newNodeUrl = req.body.newNodeUrl;
+  if(bitcoin.networkNodes.indexOf(newNodeUrl) === -1) bitcoin.networkNodes.push(newNodeUrl);
+  const regNodesPromises = [];
+  bitcoin.networkNodes.forEach(networkNodeUrl =>{
+    const requestOptions ={
+      uri: networkNodeUrl + '/register-node',
+      method: 'POST',
+      body: {newNodeUrl: newNodeUrl},
+      json: true
+    };
+    regNodesPromises.push(requestPromise(requestOptions));
+  });
+  // 노드 정보가 다른 노드들에게 모두 전달되어야 아래 코드를 반환함
+  Promise.all(regNodesPromises) 
+  .then(data =>{
+    const bulkRegisterOptions = {
+      uri: newNodeUrl + "/register-nodes-bulk",
+      method: "POST",
+      body: {allNetworkNodes: [...bitcoin.networkNodes, bitcoin.currentNodeUrl]},
+      json: true
+    };
+    return requestPromise(bulkRegisterOptions);
+  })
+  .then(data =>{
+    res.json({note: "새로운 노드가 추가되었습니다."});
+  });
+});
+// /register-and-broadcast-node 주소로 전달받은 노드가 정보를 다른 노드에 /register-node주소로 전달
+app.post("/register-node", (req, res)=>{
+  const newNodeUrl = req.body.newNodeUrl;
+  const nodeNotAlreayPresent = bitcoin.networkNodes.indexOf(newNodeUrl) == -1;
+  const notCurrentNode = bitcoin.currentNodeUrl !== newNodeUrl;
+  if(nodeNotAlreayPresent && notCurrentNode) bitcoin.networkNodes.push(newNodeUrl);
+  res.json({note: "새로운 노드가 추가되었습니다."});
+});
+// /register-and-broadcast-node의 노드는 다른 노드들의 정보를 /register-nodes-bulk 주소로 전달 받음
+app.post("/register-nodes-bulk", (req, res)=>{
+  const allNetworkNodes = req.body.allNetworkNodes;
+  allNetworkNodes.forEach(networkNodeUrl =>{
+    const nodeNotAlreayPresent = bitcoin.networkNodes.indexOf(networkNodeUrl) == -1;
+    const currentNodeUrl = bitcoin.currentNodeUrl !== networkNodeUrl;
+    if(nodeNotAlreayPresent && currentNodeUrl) bitcoin.networkNodes.push(networkNodeUrl);
+  });
+  res.json({note: "노드 정보 분배 완료"});
 });
 
 

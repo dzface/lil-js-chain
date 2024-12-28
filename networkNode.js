@@ -7,8 +7,8 @@ const PORT = process.argv[2];
 const app = express();
 const server = http.createServer(app);
 const bitcoin = new Blockchain();
-const uuid = require("./src/crypto");
-const nodeAddress = uuid;
+const {v4: uuidv4} = require("uuid"); // 기본 모듈사용
+const nodeAddress = uuidv4().split("-").join(""); // 특수문자 제거
 const rp = require("request-promise");
 
 

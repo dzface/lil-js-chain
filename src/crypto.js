@@ -8,11 +8,12 @@ function sha256(data) {
   return hashedSting;
   // 한줄로 줄이기 crypto.createHash("sha256").update(data).digest("hex");
 };
-// 노드 주소대체 UUID 생성함수 (receiver의 지갑주소에 해당)
-function uuid(){
-  const UUID = crypto.randomUUID().split("-").join("");  // uuid 생성시 특수문자 제거
-  return UUID;
-};
+// 기본 node모듈이 있어서 삭제
+// // 노드 주소대체 UUID 생성함수 (receiver의 지갑주소에 해당)
+// function uuid(){
+//   const UUID = crypto.randomUUID().split("-").join("");  // uuid 생성시 특수문자 제거
+//   return UUID;
+// };
 
 // 거래시 발생하는 transaction에 대한 고유 아이디 생성
 function createTransactionId() {
@@ -20,4 +21,4 @@ function createTransactionId() {
 };
 
 
-module.exports = {sha256, uuid, createTransactionId}; 
+module.exports = {sha256, createTransactionId}; 

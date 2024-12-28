@@ -10,7 +10,7 @@ function sha256(data) {
 };
 // 노드 주소대체 UUID 생성함수 (receiver의 지갑주소에 해당)
 function uuid(){
-  const UUID = crypto.randomUUID();
+  const UUID = crypto.randomUUID().split("-").join("");  // uuid 생성시 특수문자 제거
   return UUID;
 };
 

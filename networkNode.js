@@ -8,12 +8,12 @@ const app = express();
 const server = http.createServer(app);
 const bitcoin = new Blockchain();
 const uuid = require("./src/crypto");
-const nodeAddress = uuid//.uuid.split("-").join(""); // uuid 생성시 특수문자 제거
-const requestPromise = require("request-promise");
+const nodeAddress = uuid;
+const rp = require("request-promise");
 
 
 app.use(express.static(path.join(__dirname,"/public")));
-app.use(express.json()); // json 파씽 필수 코드
+app.use(express.json({ strict: false })); // json 파씽 필수 코드
 
 // endpoint
 // app.get("/", (request, response)=>{
@@ -26,9 +26,29 @@ app.get("/blockchain", (req, res)=>{
   res.send(bitcoin);
 });
 app.post("/transaction", (req, res)=>{
-  const blockIndex = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.receiver);
-  const data = req.body;
-  res.send(`새로운 거래 체결 블록 :${blockIndex}`);
+  console.log("받은 트랜잭션:", req.body);
+  const newTransaction = req.body;
+  const blockIndex = bitcoin.addTransactionToPendingTransactions(newTransaction);
+  res.json(`새로운 거래 체결 블록 :${blockIndex}`);
+});
+app.post("/transaction/broadcast", (req,res)=>{
+  const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.receiver);
+  bitcoin.addTransactionToPendingTransactions(newTransaction);
+const requestPromises = [];
+
+  bitcoin.networkNodes.forEach(networkNodeUrl=>{
+    const requestOptions = {
+      uri: networkNodeUrl + "/transaction",
+      method: "POST",
+      body : newTransaction,
+      json : true
+    };
+    requestPromises.push(rp(requestOptions));
+  });
+  Promise.all(requestPromises)
+  .then(data=>{
+    res.json({note: "트랜젝션 정보 분산 완료"});
+  });
 });
 app.get("/mine", (req, res)=>{
   const lastBlock =bitcoin.getLastBlock(); 
@@ -61,7 +81,7 @@ app.post("/register-and-broadcast-node", (req, res)=>{
       body: {newNodeUrl: newNodeUrl},
       json: true
     };
-    regNodesPromises.push(requestPromise(requestOptions));
+    regNodesPromises.push(rp(requestOptions));
   });
   // 노드 정보가 다른 노드들에게 모두 전달되어야 아래 코드를 반환함
   Promise.all(regNodesPromises) 
@@ -72,7 +92,7 @@ app.post("/register-and-broadcast-node", (req, res)=>{
       body: {allNetworkNodes: [...bitcoin.networkNodes, bitcoin.currentNodeUrl]},
       json: true
     };
-    return requestPromise(bulkRegisterOptions);
+    return rp(bulkRegisterOptions);
   })
   .then(data =>{
     res.json({note: "새로운 노드가 추가되었습니다."});
@@ -81,44 +101,21 @@ app.post("/register-and-broadcast-node", (req, res)=>{
 // /register-and-broadcast-node 주소로 전달받은 노드가 정보를 다른 노드에 /register-node주소로 전달
 app.post("/register-node", (req, res)=>{
   const newNodeUrl = req.body.newNodeUrl;
-  const nodeNotAlreayPresent = bitcoin.networkNodes.indexOf(newNodeUrl) == -1;
+  const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(newNodeUrl) == -1;
   const notCurrentNode = bitcoin.currentNodeUrl !== newNodeUrl;
-  if(nodeNotAlreayPresent && notCurrentNode) bitcoin.networkNodes.push(newNodeUrl);
+  if(nodeNotAlreadyPresent && notCurrentNode) bitcoin.networkNodes.push(newNodeUrl);
   res.json({note: "새로운 노드가 추가되었습니다."});
 });
 // /register-and-broadcast-node의 노드는 다른 노드들의 정보를 /register-nodes-bulk 주소로 전달 받음
 app.post("/register-nodes-bulk", (req, res)=>{
   const allNetworkNodes = req.body.allNetworkNodes;
   allNetworkNodes.forEach(networkNodeUrl =>{
-    const nodeNotAlreayPresent = bitcoin.networkNodes.indexOf(networkNodeUrl) == -1;
+    const nodeNotAlreadyPresent = bitcoin.networkNodes.indexOf(networkNodeUrl) == -1;
     const currentNodeUrl = bitcoin.currentNodeUrl !== networkNodeUrl;
-    if(nodeNotAlreayPresent && currentNodeUrl) bitcoin.networkNodes.push(networkNodeUrl);
+    if(nodeNotAlreadyPresent && currentNodeUrl) bitcoin.networkNodes.push(networkNodeUrl);
   });
   res.json({note: "노드 정보 분배 완료"});
 });
-
-
-app.post("/transaction/broadcast", (req,res)=>{
-  const newTransaction = bitcoin.createNewTransaction(req.body.amount, req.body.sender, req.body.receiver);
-  bitcoin.addTransactionToPendingTransactions(newTransaction);
-const requestPromise = [];
-
-  bitcoin.networkNodes.forEach(networkNodeUrl=>{
-    const requestOptions = {
-      uri: networkNodeUrl + "/transaction",
-      method: "POST",
-      body : newTransaction,
-      json : true
-    };
-    requestPromise.push(requestPromise(requestOptions));
-  });
-  Promise.all(requestPromise)
-  .then(data=>{
-    res.json({note: "트랜젝션 정보 분산 완료"});
-  });
-});
-
-
 
 server.listen(PORT, ()=>{
   console.log(`Server start : ${PORT}`);

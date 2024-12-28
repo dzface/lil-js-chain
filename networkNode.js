@@ -63,12 +63,58 @@ app.get("/mine", (req, res)=>{
   bitcoin.createNewTransaction(6.25, "00", nodeAddress);
 
   const newBlock = bitcoin.createNewBlock(nonce, previousBlockHash, blockHash);
-  res.json({
-    message: "새로운 블록 생성",
-    block: newBlock
+
+  // 다른 노드들에 채굴블록 정보 전달하여 동기화
+  const requestPromises =[];
+  bitcoin.networkNodes.forEach(networkNodeUrl=>{
+    const requestOptions ={
+      uri: networkNodeUrl + "/receive-new-block",
+      method: "POST",
+      body: {newBlock : newBlock},
+      json : true
+    };
+    requestPromises.push(rp(requestOptions));
+  });
+  Promise.all(requestPromises)
+  .then(data =>{
+    const requestOptions = {
+      uri: bitcoin.currentNodeUrl + "/transaction/broadcast",
+      method: "POST",
+      body : {
+        amount : 6.25,
+        sender : "00",
+        receiver : nodeAddress
+      },
+      json: true
+    };
+    return rp(requestOptions);
+  })
+  .then(data=>{
+    res.json({
+      note: "새블록이 채굴되고 분산되었습니다.",
+      block: newBlock
+    });
   });
 });
-
+app.post("/receive-new-block", (req, res)=>{
+  const newBlock = req.body.newBlock;
+  const lastBlock = bitcoin.getLastBlock();
+  const correctHash = lastBlock.currentHash === newBlock.previousBlockHash;
+  const correctIndex = lastBlock["index"]+1 === newBlock["index"];
+  if(correctHash && correctIndex){
+    bitcoin.chain.push(newBlock);
+    bitcoin.pendingTransaction = [];
+    res.json({
+      note: "새 블록 정보를 성공적으로 받았습니다",
+      newBlock
+    });
+  } else{
+    res.json({
+      note: "새 블록이 검증되지 않았습니다.",
+      newBlock
+    });
+  }
+});
 // 접속한 노드가 포트주소 등 정보를 전달받음
 app.post("/register-and-broadcast-node", (req, res)=>{
   const newNodeUrl = req.body.newNodeUrl;
